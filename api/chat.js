@@ -5,8 +5,6 @@ export default async function handler(req, res) {
 
   const { prompt } = req.body;
   const userText = (prompt && prompt.trim()) ? prompt.trim() : "مرحباً";
-
-  // مفتاح Groq الخاص بك
   const apiKey = "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";
 
   try {
@@ -17,8 +15,7 @@ export default async function handler(req, res) {
         "Authorization": `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        // هذا النموذج متاح مجاناً للجميع بدون قيود وصول
-        model: "gemma2-9b-it",
+        model: "mixtral-8x7b-32768",
         messages: [
           { role: "system", content: "أنت المساعد الذكي في منصة هاي محمود. أجب باللغة العربية باختصار وسرعة." },
           { role: "user", content: userText }
