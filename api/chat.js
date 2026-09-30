@@ -6,19 +6,35 @@ export default async function handler(req, res) {
   const { prompt } = req.body;
   const userText = (prompt && prompt.trim()) ? prompt.trim() : "مرحباً";
 
+  // مفتاح Groq الخاص بك
+  const apiKey = "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";
+
   try {
-    // تجهيز النص وتشفيره للرابط مباشرة بدون تعقيد
-    const fullPrompt = `أجب باللغة العربية باختصار: ${userText}`;
-    const encodedPrompt = encodeURIComponent(fullPrompt);
-    
-    // استدعاء مباشر عبر GET
-    const response = await fetch(`https://text.pollinations.ai/${encodedPrompt}`);
+    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        // هذا النموذج متاح مجاناً للجميع بدون قيود وصول
+        model: "gemma2-9b-it",
+        messages: [
+          { role: "system", content: "أنت المساعد الذكي في منصة هاي محمود. أجب باللغة العربية باختصار وسرعة." },
+          { role: "user", content: userText }
+        ],
+        temperature: 0.5,
+        max_tokens: 500
+      })
+    });
+
+    const data = await response.json();
 
     if (!response.ok) {
-      return res.status(response.status).json({ error: `خطأ من الخادم: ${response.status}` });
+      return res.status(response.status).json({ error: data.error?.message || "خطأ في الاتصال بالنموذج" });
     }
 
-    const reply = await response.text();
+    const reply = data.choices?.[0]?.message?.content || "لم يتم استلام رد";
     return res.status(200).json({ reply: reply.trim() });
 
   } catch (err) {
