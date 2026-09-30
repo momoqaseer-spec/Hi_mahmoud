@@ -1,0 +1,1291 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#4f46e5">
+    <title>منصة تواصل - هاي محمود</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/cairo@4.5.0/index.min.css">
+    
+    <style>
+        * { 
+            font-family: 'Cairo', sans-serif; 
+            -webkit-tap-highlight-color: transparent; 
+            box-sizing: border-box; 
+        }
+        html, body { height: 100%; height: 100dvh; overflow: hidden; background-color: #0b0f19; }
+        .app-window { height: 100dvh; display: flex; flex-direction: column; background: #ffffff; }
+
+        @media (min-width: 1024px) {
+            body { display: flex; align-items: center; justify-content: center; padding: 16px; background: radial-gradient(circle at 10% 20%, #1e1b4b 0%, #0f172a 90%); }
+            .app-window { height: 95dvh; max-width: 1440px; width: 100%; border-radius: 28px; box-shadow: 0 30px 70px -15px rgba(0,0,0,0.6); overflow: hidden; }
+        }
+
+        .chat-canvas { background-color: #f8fafc; background-image: radial-gradient(#6366f1 0.75px, transparent 0.75px); background-size: 28px 28px; }
+        .gradient-brand { background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); }
+        .msg-bubble-me { background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%); color: #fff; border-radius: 20px 20px 4px 20px; }
+        .msg-bubble-other { background: #fff; color: #0f172a; border-radius: 20px 20px 20px 4px; box-shadow: 0 2px 6px rgba(15,23,42,0.05); }
+        .msg-bubble-bot { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; border-radius: 20px 20px 20px 4px; box-shadow: 0 2px 6px rgba(22,101,52,0.08); }
+    </style>
+</head>
+<body>
+
+    <!-- نافذة تسجيل الدخول -->
+    <div id="modal-auth" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
+        <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-sm w-full shadow-2xl border border-slate-100 text-center">
+            <div class="w-14 h-14 rounded-2xl gradient-brand flex items-center justify-center text-white text-2xl mx-auto mb-3 shadow-lg shadow-indigo-500/30">
+                💬
+            </div>
+            
+            <h2 class="text-xl font-black text-slate-900 mb-1">هاي محمود</h2>
+            <p class="text-xs text-slate-500 mb-5">أدخل بياناتك للانضمام فوراً للمنصة</p>
+            
+            <form id="form-auth" class="space-y-3.5 text-right">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">الاسم الكامل أو اللقب *</label>
+                    <input type="text" id="auth-name" required placeholder="اكتب اسمك الحقيقي هنا" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500 font-semibold">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">البريد الإلكتروني *</label>
+                    <input type="email" id="auth-email" required placeholder="name@example.com" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500 font-medium">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">كلمة المرور *</label>
+                    <input type="password" id="auth-password" required minlength="4" placeholder="••••••••" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500 font-medium">
+                </div>
+                <button type="submit" id="btn-auth-submit" class="w-full py-3.5 gradient-brand text-white font-bold rounded-xl shadow-lg shadow-indigo-500/25 text-sm hover:opacity-95 active:scale-95 transition-all">
+                    دخول المنصة فوراً
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- نافذة إنشاء غرفة -->
+    <div id="modal-create-room" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md">
+        <div class="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl text-right">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-base font-black text-slate-900">إنشاء غرفة جماعية</h3>
+                <button id="btn-close-room-modal" type="button" class="text-slate-400 hover:text-slate-600">✕</button>
+            </div>
+            <form id="form-create-room" class="space-y-3.5">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">اسم الغرفة *</label>
+                    <input type="text" id="input-room-name" required maxlength="40" placeholder="مثال: قسم التوزيع" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none font-semibold">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">الوصف</label>
+                    <input type="text" id="input-room-desc" maxlength="80" placeholder="وصف مهام الغرفة..." class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">رمز سري لحماية الغرفة (PIN) <span class="text-slate-400 font-normal">(اختياري)</span></label>
+                    <input type="password" id="input-room-pin" maxlength="10" placeholder="اتركه فارغاً إذا أردتها عامة" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none font-mono">
+                </div>
+                <button type="submit" class="w-full mt-2 py-2.5 gradient-brand text-white font-bold rounded-xl text-sm shadow-md">نشر الغرفة</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- نافذة إدخال رمز PIN -->
+    <div id="modal-pin-prompt" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+        <div class="bg-white rounded-3xl p-6 max-w-xs w-full shadow-2xl text-center">
+            <div class="w-12 h-12 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center text-xl mx-auto mb-3">
+                🔒
+            </div>
+            <h3 id="pin-prompt-title" class="text-base font-black text-slate-900 mb-1">غرفة محمية</h3>
+            <p class="text-xs text-slate-500 mb-4">أدخل الرمز السري للوصول للغرفة</p>
+            <form id="form-pin-prompt" class="space-y-3">
+                <input type="password" id="input-verify-pin" required maxlength="10" placeholder="الرمز..." class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-center text-base tracking-widest font-mono outline-none">
+                <div class="flex gap-2">
+                    <button type="button" id="btn-cancel-pin" class="flex-1 py-2 bg-slate-100 text-slate-600 font-bold rounded-xl text-xs">إلغاء</button>
+                    <button type="submit" class="flex-1 py-2 gradient-brand text-white font-bold rounded-xl text-xs shadow-md">دخول</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- نافذة إدارة أعضاء الغرفة -->
+    <div id="modal-manage-members" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+        <div class="bg-white rounded-3xl p-5 max-w-sm w-full shadow-2xl text-right flex flex-col max-h-[85vh]">
+            <div class="flex justify-between items-center mb-3 pb-2 border-b border-slate-100">
+                <div>
+                    <h3 class="text-sm font-black text-slate-900">إدارة أعضاء الغرفة</h3>
+                    <p id="manage-members-room-title" class="text-[11px] text-slate-500">تحكم بالأعضاء المسجلين</p>
+                </div>
+                <button id="btn-close-members-modal" type="button" class="text-slate-400 hover:text-slate-600">✕</button>
+            </div>
+            <div id="manage-members-list" class="flex-1 overflow-y-auto divide-y divide-slate-100 space-y-1"></div>
+        </div>
+    </div>
+
+    <!-- عارض الصور Lightbox -->
+    <div id="lightbox-modal" class="hidden fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4">
+        <button id="btn-close-lightbox" type="button" class="absolute top-5 left-5 text-white bg-white/10 p-2.5 rounded-full">✕</button>
+        <img id="lightbox-img" src="" class="max-w-full max-h-[85vh] rounded-2xl object-contain">
+    </div>
+
+    <!-- الواجهة الأساسية -->
+    <div class="app-window">
+        <!-- شريط الرأس -->
+        <header class="gradient-brand text-white px-3.5 py-2.5 sm:px-5 sm:py-3.5 flex items-center justify-between shadow-md z-10 shrink-0">
+            <div class="flex items-center gap-2.5 sm:gap-3">
+                <button id="btn-toggle-sidebar" type="button" class="md:hidden p-2 bg-white/10 rounded-xl hover:bg-white/20 active:scale-95 transition-all">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                </button>
+                <div>
+                    <h1 class="text-sm sm:text-base font-black leading-none">هاي محمود</h1>
+                    <p class="text-[10px] sm:text-xs text-emerald-300 mt-1 flex items-center gap-1 font-semibold">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span>متصل سحابياً (Serverless API ⚡)</span>
+                    </p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-1.5 sm:gap-2">
+                <button id="btn-enable-notifications" type="button" class="p-2 bg-white/15 hover:bg-white/25 rounded-xl text-amber-300 text-xs font-bold flex items-center gap-1 transition-all" title="تفعيل التنبيهات">
+                    <span>🔔</span>
+                    <span class="hidden sm:inline text-[11px]">التنبيهات</span>
+                </button>
+
+                <div class="flex items-center gap-1.5 sm:gap-2 bg-white/15 rounded-full px-2.5 py-1 text-xs font-semibold">
+                    <div id="user-badge-avatar" class="w-6 h-6 rounded-full bg-white text-indigo-700 flex items-center justify-center font-bold text-[11px]">؟</div>
+                    <span id="user-badge-name" class="max-w-[80px] sm:max-w-[120px] truncate">زائر</span>
+                </div>
+
+                <button id="btn-logout" type="button" class="p-2 hover:bg-white/20 rounded-xl text-white/80 active:scale-95" title="تسجيل خروج">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                </button>
+            </div>
+        </header>
+
+        <div class="flex flex-1 overflow-hidden relative">
+            <!-- القائمة الجانبية -->
+            <aside id="sidebar-panel" class="w-full md:w-80 lg:w-96 bg-white border-l border-slate-200 flex flex-col z-20 shrink-0">
+                <div class="p-2 bg-slate-100 border-b border-slate-200 flex gap-1">
+                    <button id="tab-direct-btn" type="button" class="flex-1 py-1.5 rounded-lg text-[11px] font-bold bg-white text-indigo-600 shadow-sm transition-all">خاصة</button>
+                    <button id="tab-rooms-btn" type="button" class="flex-1 py-1.5 rounded-lg text-[11px] font-bold text-slate-600 transition-all">غرف</button>
+                    <button id="tab-archived-btn" type="button" class="flex-1 py-1.5 rounded-lg text-[11px] font-bold text-slate-600 transition-all">المؤرشفة</button>
+                </div>
+
+                <div class="p-2.5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                    <span id="sidebar-section-title" class="text-xs font-black text-slate-700">المحادثات الخاصة</span>
+                    <button id="btn-open-create-room" type="button" class="hidden px-3 py-1 gradient-brand text-white rounded-xl text-xs font-bold shadow-sm hover:opacity-95">+ غرفة</button>
+                </div>
+
+                <div id="chats-list-container" class="flex-1 overflow-y-auto divide-y divide-slate-100"></div>
+
+                <footer class="p-3 bg-slate-900 text-white text-center border-t border-slate-800 shrink-0 select-none">
+                    <p class="text-[11px] font-bold text-slate-300">جميع الحقوق محفوظة © 2026</p>
+                    <p class="text-[10px] text-indigo-400 font-semibold mt-0.5">تصميم وتطوير: م. محمود قصير</p>
+                </footer>
+            </aside>
+
+            <!-- واجهة المحادثة الرئيسية -->
+            <main id="chat-panel" class="flex-1 flex flex-col bg-slate-50 overflow-hidden relative">
+                <!-- رأس المحادثة -->
+                <div class="px-4 py-2 bg-white border-b border-slate-200 flex items-center justify-between shadow-sm z-10 shrink-0">
+                    <div class="flex items-center gap-3">
+                        <button id="btn-back-to-rooms" type="button" class="md:hidden p-1.5 text-slate-600 hover:bg-slate-100 rounded-xl">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                        </button>
+                        <div>
+                            <h2 id="room-active-title" class="text-sm font-black text-slate-900">الدردشة العامة</h2>
+                            <p id="room-active-desc" class="text-[11px] text-slate-500">حوارات عامة</p>
+                        </div>
+                    </div>
+
+                    <!-- أزرار إدارة الغرفة والخصوصية -->
+                    <div class="flex items-center gap-1.5">
+                        <button id="btn-manage-members" type="button" class="hidden text-[11px] font-bold px-2.5 py-1 rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-all">
+                            الأعضاء ⚙
+                        </button>
+
+                        <div id="chat-action-controls" class="hidden flex items-center gap-1.5">
+                            <button id="btn-action-archive" type="button" class="text-[11px] font-bold px-2 py-1 rounded-lg border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 transition-all">
+                                📦 أرشفة
+                            </button>
+                            <button id="btn-action-block" type="button" class="text-[11px] font-bold px-2 py-1 rounded-lg border border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100 transition-all">
+                                🚫 حظر
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="banner-blocked" class="hidden bg-rose-600 text-white text-xs font-bold text-center py-1.5 px-3 shadow-inner">
+                    هذا المستخدم في قائمة الحظر. تم إيقاف إرسال واستقبال الرسائل.
+                </div>
+
+                <div id="messages-container" class="flex-1 overflow-y-auto chat-canvas px-3.5 py-4 space-y-3 relative"></div>
+
+                <div id="upload-progress-container" class="hidden bg-indigo-50 border-t border-indigo-100 px-4 py-2 shrink-0">
+                    <div class="flex items-center justify-between text-xs text-indigo-700 font-bold mb-1">
+                        <span id="upload-status-text">جاري رفع الملف للسحابة...</span>
+                        <span id="upload-percent-text">0%</span>
+                    </div>
+                    <div class="w-full bg-indigo-200 rounded-full h-1.5 overflow-hidden">
+                        <div id="upload-progress-bar" class="gradient-brand h-1.5 transition-all duration-200" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div id="recording-active-bar" class="hidden bg-rose-50 border-t border-rose-200 px-4 py-2 flex items-center justify-between shrink-0">
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full bg-rose-600 animate-pulse"></span>
+                        <span class="text-xs font-black text-rose-700">جاري التسجيل:</span>
+                        <span id="rec-timer-text" class="text-xs font-mono font-bold text-rose-900">00:00</span>
+                    </div>
+                    <div class="flex gap-2">
+                        <button id="btn-cancel-recording" type="button" class="text-xs text-slate-500 font-bold px-2 py-1">إلغاء</button>
+                        <button id="btn-finish-recording" type="button" class="text-xs bg-rose-600 text-white font-bold px-3 py-1 rounded-lg">إرسال</button>
+                    </div>
+                </div>
+
+                <!-- لوحة الإيموجي المنبثقة -->
+                <div id="emoji-picker-container" class="hidden absolute bottom-16 right-4 z-40 bg-white border border-slate-200 rounded-2xl shadow-2xl p-2.5 max-w-[280px] w-full">
+                    <div class="flex border-b border-slate-100 pb-1.5 mb-2 gap-1 text-[11px] font-bold text-slate-500">
+                        <span class="cursor-pointer px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-600">وجوه</span>
+                        <span class="cursor-pointer px-1.5 py-0.5 rounded hover:bg-slate-100">إشارات</span>
+                        <span class="cursor-pointer px-1.5 py-0.5 rounded hover:bg-slate-100">قلوب</span>
+                    </div>
+                    <div id="emoji-grid" class="grid grid-cols-7 gap-1 text-lg text-center max-h-40 overflow-y-auto select-none"></div>
+                </div>
+
+                <!-- شريط الإدخال -->
+                <div class="bg-white border-t border-slate-200 p-2 sm:p-3 shrink-0 z-20">
+                    <div class="flex items-end gap-1.5 sm:gap-2 max-w-4xl mx-auto">
+                        <input type="file" id="upload-file-hidden" class="hidden" accept="image/*,video/*,.pdf,.doc,.docx,.xlsx,.zip,.txt">
+                        
+                        <button id="btn-toggle-emoji" type="button" class="p-2 sm:p-2.5 text-slate-400 hover:text-amber-500 active:scale-95 text-lg" title="إيموجي">😊</button>
+                        <button id="btn-attach-file" type="button" class="p-2 sm:p-2.5 text-slate-400 hover:text-indigo-600 active:scale-95 text-lg" title="إرفاق ملف">📎</button>
+                        <button id="btn-start-record" type="button" class="p-2 sm:p-2.5 text-slate-400 hover:text-rose-600 active:scale-95 text-lg" title="تسجيل صوت">🎤</button>
+                        
+                        <textarea id="text-input-message" rows="1" maxlength="2000" placeholder="اكتب رسالتك (اكتب @m أو @ai لسؤال المساعد)..." class="flex-1 px-3.5 py-2.5 bg-slate-100 rounded-2xl resize-none text-xs sm:text-sm text-slate-800 outline-none leading-relaxed" style="max-height: 120px; min-height: 42px;"></textarea>
+                        
+                        <button id="btn-submit-message" type="button" class="p-2.5 sm:p-3 gradient-brand text-white rounded-xl shadow-md active:scale-95 transition-all flex items-center justify-center min-w-[42px]">
+                            <svg id="btn-submit-icon" class="w-4 h-4 sm:w-5 sm:h-5 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+                        </button>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- كود الجافاسكريبت بعد توجيهه لخادم Vercel -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
+        import { 
+            getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, setDoc, doc, deleteDoc, updateDoc 
+        } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+        import { 
+            getStorage, ref, uploadBytesResumable, getDownloadURL 
+        } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-storage.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyD2uzTiNLrcwdNxLS7NVbArkArwrWTyLY8",
+            authDomain: "tawsolmahmoud-e7ab8.firebaseapp.com",
+            projectId: "tawsolmahmoud-e7ab8",
+            storageBucket: "tawsolmahmoud-e7ab8.firebasestorage.app",
+            messagingSenderId: "1002968406923",
+            appId: "1:1002968406923:web:7ea7d003da1dd9c859ad8e"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const storage = getStorage(app, "gs://tawsolmahmoud-e7ab8.firebasestorage.app");
+
+        // إدارة الخصوصية
+        let archivedChats = JSON.parse(localStorage.getItem('tawsol_archived_chats') || '[]');
+        let blockedUsers = JSON.parse(localStorage.getItem('tawsol_blocked_users') || '[]');
+
+        function savePrivacySettings() {
+            localStorage.setItem('tawsol_archived_chats', JSON.stringify(archivedChats));
+            localStorage.setItem('tawsol_blocked_users', JSON.stringify(blockedUsers));
+        }
+
+        // تنبيه صوتي
+        let audioCtx = null;
+        function initAudio() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+        }
+        window.addEventListener('click', initAudio, { once: true });
+        window.addEventListener('keydown', initAudio, { once: true });
+
+        function playBeep() {
+            try {
+                initAudio();
+                if (!audioCtx) return;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = "sine";
+                osc.frequency.setValueAtTime(587.33, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.12);
+                gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.2);
+            } catch(e) {}
+        }
+
+        function notifyMessage(sender, text) {
+            playBeep();
+            if ("Notification" in window && Notification.permission === "granted" && document.hidden) {
+                try {
+                    const cleanText = (text || "مرفق جديد").replace(/<[^>]*>?/gm, '');
+                    const n = new Notification(sender, {
+                        body: cleanText.length > 60 ? cleanText.substring(0, 60) + '...' : cleanText,
+                        icon: "https://cdn-icons-png.flaticon.com/512/1041/1041916.png"
+                    });
+                    n.onclick = () => { window.focus(); n.close(); };
+                } catch(e) {}
+            }
+        }
+
+        const btnNotif = document.getElementById('btn-enable-notifications');
+        btnNotif.addEventListener('click', () => {
+            initAudio();
+            if ("Notification" in window) {
+                Notification.requestPermission().then(permission => {
+                    if (permission === "granted") {
+                        alert("تم تفعيل الإشعارات بنجاح!");
+                        btnNotif.classList.add('opacity-50');
+                    }
+                });
+            }
+        });
+
+        // دالة استدعاء المساعد عبر مسار API السحابي الموثوق
+        async function askLlama(promptText) {
+            const finalPrompt = promptText.trim() ? promptText.trim() : "مرحباً، عرفني بنفسك باختصار.";
+
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: finalPrompt })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok || data.error) {
+                    alert("⚠️ تنبيه:\n" + (data.error || "خطأ في معالجة الطلب"));
+                    return `تنبيه من النظام: ${data.error || "تعذر معالجة الطلب"}`;
+                }
+
+                return data.reply;
+
+            } catch (err) {
+                alert("⚠️ تعذر الاتصال:\n" + err.message);
+                return `تعذر الاتصال بالخادم: ${err.message}`;
+            }
+        }
+
+        let currentUser = null;
+        try {
+            currentUser = JSON.parse(localStorage.getItem('tawsol_session_user') || 'null');
+        } catch(e) { currentUser = null; }
+
+        let activeTab = 'direct';
+        let currentChatId = 'general';
+        let currentTargetUserId = null;
+        let currentRoomData = null;
+        let unsubscribeMessages = null;
+        let allUsers = [];
+        let allRooms = [];
+        let pendingProtectedRoom = null;
+        let isInitialLoad = true;
+
+        let mediaRecorderInstance = null;
+        let recordedChunks = [];
+        let recInterval = null;
+        let recSeconds = 0;
+
+        const authSubmit = document.getElementById('btn-auth-submit');
+        const txtInput = document.getElementById('text-input-message');
+        const btnSubmit = document.getElementById('btn-submit-message');
+        const btnArchive = document.getElementById('btn-action-archive');
+        const btnBlock = document.getElementById('btn-action-block');
+        const bannerBlocked = document.getElementById('banner-blocked');
+        const chatControls = document.getElementById('chat-action-controls');
+        const btnManageMembers = document.getElementById('btn-manage-members');
+        const modalManageMembers = document.getElementById('modal-manage-members');
+        const manageMembersList = document.getElementById('manage-members-list');
+        const chatsListContainer = document.getElementById('chats-list-container');
+        const container = document.getElementById('messages-container');
+        const sidebarEl = document.getElementById('sidebar-panel');
+        const chatEl = document.getElementById('chat-panel');
+        const emojiPicker = document.getElementById('emoji-picker-container');
+        const emojiGrid = document.getElementById('emoji-grid');
+        const btnToggleEmoji = document.getElementById('btn-toggle-emoji');
+
+        const emojisList = [
+            '😀','😃','😄','😁','😆','😅','😂','🤣','🥲','🥹','😊','😇','🙂','🙃','😉',
+            '😌','😍','🥰','😘','😗','😙','😚','😋','😛','😜','🤪','😝','🤑','🤗','🤭',
+            '🫢','🤫','🤔','🫡','🤐','🤨','😐','😑','😶','🫥','😏','😒','🙄','😬','🤥',
+            '😌','😔','😪','🤤','😴','😷','🤒','🤕','🤢','🤮','🤧','🥵','🥶','🥴','😵',
+            '🤯','🤠','🥳','🥸','😎','🤓','🧐','😕','😟','🙁','😮','😯','😲','😳','🥺',
+            '👍','👎','👏','🙌','👐','🤲','🤝','🙏','✌️','🤞','🤟','🤘','👌','🤌','🤏',
+            '👈','👉','👆','👇','☝','✋','🤚','🖐️','🖖','👋','🤙','💪','🦾','🖕','✍️',
+            '❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','❤🔥','❤️🩹','❣','💕','💞',
+            '💓','💗','💖','💘','💝','🔥','✨','🎉','☕','🌹','⭐','💯','✅','❌','⚡'
+        ];
+
+        emojiGrid.innerHTML = emojisList.map(e => `
+            <span class="cursor-pointer p-1 hover:bg-slate-100 rounded text-center transition-all active:scale-125">${e}</span>
+        `).join('');
+
+        btnToggleEmoji.addEventListener('click', (e) => {
+            e.stopPropagation();
+            emojiPicker.classList.toggle('hidden');
+        });
+
+        emojiGrid.addEventListener('click', (e) => {
+            if (e.target.tagName === 'SPAN') {
+                const char = e.target.textContent;
+                const start = txtInput.selectionStart;
+                const end = txtInput.selectionEnd;
+                txtInput.value = txtInput.value.substring(0, start) + char + txtInput.value.substring(end);
+                txtInput.focus();
+                txtInput.selectionStart = txtInput.selectionEnd = start + char.length;
+                autoResizeTextarea(txtInput);
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!emojiPicker.contains(e.target) && e.target !== btnToggleEmoji) {
+                emojiPicker.classList.add('hidden');
+            }
+            document.querySelectorAll('.reaction-popup').forEach(p => p.classList.add('hidden'));
+        });
+
+        function updateChatControls() {
+            if (!chatControls || !btnArchive || !btnBlock || !bannerBlocked) return;
+
+            if (currentChatId && currentChatId !== 'general' && !currentChatId.startsWith('room_')) {
+                chatControls.classList.remove('hidden');
+                btnManageMembers.classList.add('hidden');
+                
+                const isArchived = archivedChats.includes(currentChatId);
+                btnArchive.textContent = isArchived ? "📥 إلغاء الأرشفة" : "📦 أرشفة";
+
+                const isBlocked = currentTargetUserId && blockedUsers.includes(currentTargetUserId);
+                btnBlock.textContent = isBlocked ? "🔓 إلغاء الحظر" : "🚫 حظر";
+                btnBlock.className = isBlocked 
+                    ? "text-[11px] font-bold px-2 py-1 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-all"
+                    : "text-[11px] font-bold px-2 py-1 rounded-lg border border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100 transition-all";
+
+                if (isBlocked) {
+                    bannerBlocked.classList.remove('hidden');
+                    btnSubmit.disabled = true;
+                    txtInput.disabled = true;
+                    txtInput.placeholder = "المستخدم محظور، لا يمكنك الإرسال.";
+                } else {
+                    bannerBlocked.classList.add('hidden');
+                    btnSubmit.disabled = false;
+                    txtInput.disabled = false;
+                    txtInput.placeholder = "اكتب رسالتك (اكتب @m أو @ai لسؤال المساعد)...";
+                }
+            } 
+            else if (currentChatId && currentChatId.startsWith('room_')) {
+                chatControls.classList.add('hidden');
+                bannerBlocked.classList.add('hidden');
+                btnSubmit.disabled = false;
+                txtInput.disabled = false;
+                txtInput.placeholder = "اكتب رسالتك في الغرفة...";
+
+                if (currentRoomData && currentUser && (currentRoomData.creator === currentUser.name || currentRoomData.creatorUid === currentUser.uid)) {
+                    btnManageMembers.classList.remove('hidden');
+                } else {
+                    btnManageMembers.classList.add('hidden');
+                }
+            } 
+            else {
+                chatControls.classList.add('hidden');
+                btnManageMembers.classList.add('hidden');
+                bannerBlocked.classList.add('hidden');
+                btnSubmit.disabled = false;
+                txtInput.disabled = false;
+                txtInput.placeholder = "اكتب رسالتك (اكتب @m أو @ai لسؤال المساعد)...";
+            }
+        }
+
+        // تسجيل الدخول
+        document.getElementById('form-auth').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const name = document.getElementById('auth-name').value.trim();
+            const email = document.getElementById('auth-email').value.trim().toLowerCase();
+            const password = document.getElementById('auth-password').value.trim();
+
+            if (!name || !email || !password) return;
+
+            authSubmit.disabled = true;
+            authSubmit.textContent = "جاري الدخول...";
+
+            const userDocId = 'usr_' + email.replace(/[^a-zA-Z0-9]/g, '_');
+            const userRef = doc(db, 'chat_users', userDocId);
+
+            const userData = {
+                uid: userDocId,
+                name: name,
+                email: email,
+                password: password,
+                lastSeen: serverTimestamp()
+            };
+
+            setDoc(userRef, userData, { merge: true }).catch(() => {});
+            loginSuccess(userData);
+        });
+
+        function loginSuccess(userData) {
+            currentUser = userData;
+            localStorage.setItem('tawsol_session_user', JSON.stringify(userData));
+            document.getElementById('modal-auth').classList.add('hidden');
+            document.getElementById('user-badge-name').textContent = userData.name;
+            document.getElementById('user-badge-avatar').textContent = (userData.name || 'U').charAt(0).toUpperCase();
+            
+            if ("Notification" in window && Notification.permission === "default") {
+                Notification.requestPermission();
+            }
+            syncData();
+        }
+
+        if (currentUser) {
+            loginSuccess(currentUser);
+        } else {
+            document.getElementById('modal-auth').classList.remove('hidden');
+        }
+
+        document.getElementById('btn-logout').addEventListener('click', () => {
+            if (confirm("هل ترغب بتسجيل الخروج؟")) {
+                localStorage.removeItem('tawsol_session_user');
+                location.reload();
+            }
+        });
+
+        function autoResizeTextarea(el) {
+            el.style.height = 'auto';
+            const newHeight = Math.min(el.scrollHeight, 120);
+            el.style.height = newHeight + 'px';
+        }
+        txtInput.addEventListener('input', () => autoResizeTextarea(txtInput));
+
+        // تبديل التبويبات
+        const tabDirectBtn = document.getElementById('tab-direct-btn');
+        const tabRoomsBtn = document.getElementById('tab-rooms-btn');
+        const tabArchivedBtn = document.getElementById('tab-archived-btn');
+        const createRoomBtn = document.getElementById('btn-open-create-room');
+        const sectionTitle = document.getElementById('sidebar-section-title');
+
+        function updateTabStyles() {
+            tabDirectBtn.className = "flex-1 py-1.5 rounded-lg text-[11px] font-bold transition-all " + (activeTab === 'direct' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-600");
+            tabRoomsBtn.className = "flex-1 py-1.5 rounded-lg text-[11px] font-bold transition-all " + (activeTab === 'rooms' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-600");
+            tabArchivedBtn.className = "flex-1 py-1.5 rounded-lg text-[11px] font-bold transition-all " + (activeTab === 'archived' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-600");
+
+            if (activeTab === 'rooms') {
+                createRoomBtn.classList.remove('hidden');
+                sectionTitle.textContent = "الغرف الجماعية";
+            } else if (activeTab === 'archived') {
+                createRoomBtn.classList.add('hidden');
+                sectionTitle.textContent = "المحادثات المؤرشفة والمخفية";
+            } else {
+                createRoomBtn.classList.add('hidden');
+                sectionTitle.textContent = "المحادثات الخاصة";
+            }
+            renderSidebar();
+        }
+
+        tabDirectBtn.addEventListener('click', () => { activeTab = 'direct'; updateTabStyles(); });
+        tabRoomsBtn.addEventListener('click', () => { activeTab = 'rooms'; updateTabStyles(); });
+        tabArchivedBtn.addEventListener('click', () => { activeTab = 'archived'; updateTabStyles(); });
+
+        // إنشاء غرفة
+        const modalCreateRoom = document.getElementById('modal-create-room');
+        document.getElementById('btn-open-create-room').addEventListener('click', () => modalCreateRoom.classList.remove('hidden'));
+        document.getElementById('btn-close-room-modal').addEventListener('click', () => modalCreateRoom.classList.add('hidden'));
+
+        document.getElementById('form-create-room').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const rName = document.getElementById('input-room-name').value.trim();
+            const rDesc = document.getElementById('input-room-desc').value.trim();
+            const rPin = document.getElementById('input-room-pin').value.trim();
+            if (!rName || !currentUser) return;
+
+            const rId = 'room_' + Date.now();
+            await setDoc(doc(db, 'chat_rooms', rId), {
+                id: rId,
+                name: rName,
+                desc: rDesc || 'غرفة جماعية',
+                pin: rPin || null,
+                isPrivate: !!rPin,
+                creator: currentUser.name,
+                creatorUid: currentUser.uid,
+                members: [currentUser.uid],
+                createdAt: serverTimestamp()
+            }).catch(() => {});
+
+            modalCreateRoom.classList.add('hidden');
+            e.target.reset();
+            openChat(rId, rName, rPin ? '🔒 غرفة محمية برمز' : 'غرفة جماعية');
+        });
+
+        // فحص الرمز السري PIN
+        const modalPin = document.getElementById('modal-pin-prompt');
+        document.getElementById('btn-cancel-pin').addEventListener('click', () => {
+            modalPin.classList.add('hidden');
+            pendingProtectedRoom = null;
+        });
+
+        document.getElementById('form-pin-prompt').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const entered = document.getElementById('input-verify-pin').value.trim();
+            if (!pendingProtectedRoom) return;
+
+            if (entered === pendingProtectedRoom.pin) {
+                modalPin.classList.add('hidden');
+                document.getElementById('input-verify-pin').value = '';
+                openChat(pendingProtectedRoom.id, pendingProtectedRoom.name, '🔒 غرفة محمية برمز');
+                pendingProtectedRoom = null;
+            } else {
+                alert("الرمز السري غير صحيح!");
+            }
+        });
+
+        // إدارة أعضاء الغرفة
+        btnManageMembers.addEventListener('click', () => {
+            if (!currentRoomData) return;
+            document.getElementById('manage-members-room-title').textContent = currentRoomData.name;
+            renderMembersManager();
+            modalManageMembers.classList.remove('hidden');
+        });
+
+        document.getElementById('btn-close-members-modal').addEventListener('click', () => {
+            modalManageMembers.classList.add('hidden');
+        });
+
+        function renderMembersManager() {
+            if (!currentRoomData) return;
+            const currentMembers = currentRoomData.members || [];
+
+            manageMembersList.innerHTML = allUsers.map(u => {
+                const isMember = currentMembers.includes(u.uid);
+                return `
+                    <div class="py-2 flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <div class="w-7 h-7 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-xs">${(u.name || 'U').charAt(0)}</div>
+                            <span class="text-xs font-bold text-slate-800">${u.name}</span>
+                        </div>
+                        <button onclick="window.toggleRoomMember('${u.uid}', ${isMember})" class="text-[10px] font-bold px-2 py-1 rounded-lg border ${isMember ? 'border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100' : 'border-indigo-200 bg-indigo-50 text-indigo-600 hover:bg-indigo-100'}">
+                            ${isMember ? 'إزالة من الغرفة' : 'إضافة للغرفة +'}
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        window.toggleRoomMember = async function(targetUid, isCurrentlyMember) {
+            if (!currentRoomData || !currentRoomData.id) return;
+            let updatedMembers = currentRoomData.members || [];
+
+            if (isCurrentlyMember) {
+                updatedMembers = updatedMembers.filter(id => id !== targetUid);
+            } else {
+                if (!updatedMembers.includes(targetUid)) updatedMembers.push(targetUid);
+            }
+
+            try {
+                await updateDoc(doc(db, 'chat_rooms', currentRoomData.id), {
+                    members: updatedMembers
+                });
+                currentRoomData.members = updatedMembers;
+                renderMembersManager();
+            } catch(e) {
+                alert("حدث خطأ أثناء تعديل الأعضاء.");
+            }
+        };
+
+        // تفاعلات الرسائل
+        window.openReactionsMenu = function(e, msgId) {
+            e.stopPropagation();
+            document.querySelectorAll('.reaction-popup').forEach(p => p.classList.add('hidden'));
+            const popup = document.getElementById(`reaction-popup-${msgId}`);
+            if (popup) popup.classList.remove('hidden');
+        };
+
+        window.addReaction = async function(msgId, reactionEmoji) {
+            if (!currentUser || !currentChatId) return;
+            try {
+                const msgRef = doc(db, 'conversations', currentChatId, 'messages', msgId);
+                const reactionField = `reactions.${currentUser.uid}`;
+                await updateDoc(msgRef, {
+                    [reactionField]: reactionEmoji
+                });
+            } catch(e) {}
+        };
+
+        // أرشفة وحظر
+        btnArchive.addEventListener('click', () => {
+            if (!currentChatId || currentChatId === 'general' || currentChatId.startsWith('room_')) return;
+            const isArchived = archivedChats.includes(currentChatId);
+            if (isArchived) {
+                archivedChats = archivedChats.filter(id => id !== currentChatId);
+                alert("تم إلغاء الأرشفة وإظهار المحادثة مجدداً.");
+            } else {
+                archivedChats.push(currentChatId);
+                alert("تمت أرشفة وإخفاء المحادثة من القائمة الرئيسية.");
+            }
+            savePrivacySettings();
+            updateChatControls();
+            renderSidebar();
+        });
+
+        btnBlock.addEventListener('click', () => {
+            if (!currentTargetUserId) return;
+            const isBlocked = blockedUsers.includes(currentTargetUserId);
+            if (isBlocked) {
+                blockedUsers = blockedUsers.filter(uid => uid !== currentTargetUserId);
+                alert("تم إلغاء الحظر بنجاح.");
+            } else {
+                if (confirm("هل أنت متأكد من حظر هذا المستخدم؟ لن تتمكن من مراسلته أو رؤية رسائله.")) {
+                    blockedUsers.push(currentTargetUserId);
+                    alert("تم حظر المستخدم بنجاح.");
+                }
+            }
+            savePrivacySettings();
+            updateChatControls();
+            openChat(currentChatId, document.getElementById('room-active-title').textContent, document.getElementById('room-active-desc').textContent);
+        });
+
+        // إرسال الرسائل وتفعيل منشن الذكاء الاصطناعي (@m, @llama, @ai)
+        btnSubmit.addEventListener('click', sendMsg);
+        txtInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
+        });
+
+        async function sendMsg() {
+            if (currentTargetUserId && blockedUsers.includes(currentTargetUserId)) {
+                alert("لا يمكنك مراسلة مستخدم قمت بحظره!");
+                return;
+            }
+
+            const val = txtInput.value.trim();
+            if (!val) return;
+            txtInput.value = '';
+            txtInput.style.height = '42px';
+            txtInput.focus();
+
+            await uploadMessage({ text: val });
+
+            const isAiCall = /@m\b|@llama|@ai|@bot|يا ذكاء/i.test(val);
+
+            if (isAiCall) {
+                const promptClean = val.replace(/@m\b|@llama|@ai|@bot|يا ذكاء/gi, '').trim();
+                const targetChat = currentChatId;
+
+                let tempDocRef = null;
+                try {
+                    tempDocRef = await addDoc(collection(db, 'conversations', targetChat, 'messages'), {
+                        text: "...",
+                        isTyping: true,
+                        senderId: "ai_agent_bot",
+                        senderName: "المساعد الذكي",
+                        isBot: true,
+                        createdAt: serverTimestamp()
+                    });
+                } catch(e) {}
+
+                const replyText = await askLlama(promptClean);
+
+                if (tempDocRef) {
+                    await setDoc(tempDocRef, {
+                        text: replyText,
+                        isTyping: false,
+                        senderId: "ai_agent_bot",
+                        senderName: "المساعد الذكي",
+                        isBot: true,
+                        createdAt: serverTimestamp()
+                    });
+                } else {
+                    await addDoc(collection(db, 'conversations', targetChat, 'messages'), {
+                        text: replyText,
+                        senderId: "ai_agent_bot",
+                        senderName: "المساعد الذكي",
+                        isBot: true,
+                        createdAt: serverTimestamp()
+                    });
+                }
+            }
+        }
+
+        // إرفاق الملفات
+        const filePicker = document.getElementById('upload-file-hidden');
+        const uploadProgress = document.getElementById('upload-progress-container');
+        const uploadProgressBar = document.getElementById('upload-progress-bar');
+        const uploadPercentText = document.getElementById('upload-percent-text');
+
+        document.getElementById('btn-attach-file').addEventListener('click', () => filePicker.click());
+        filePicker.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let w = img.width, h = img.height;
+                        if (w > 1000 || h > 1000) {
+                            if (w > h) { h = Math.round((h * 1000) / w); w = 1000; }
+                            else { w = Math.round((w * 1000) / h); h = 1000; }
+                        }
+                        canvas.width = w; canvas.height = h;
+                        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                        uploadMessage({ text: '📷 صورة', mediaData: canvas.toDataURL('image/jpeg', 0.65), mediaType: 'image' });
+                    };
+                    img.src = ev.target.result;
+                };
+                reader.readAsDataURL(file);
+                filePicker.value = '';
+                return;
+            }
+
+            if (file.size <= 700 * 1024) {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    uploadMessage({ 
+                        text: '📎 ملف: ' + file.name, 
+                        mediaData: reader.result, 
+                        mediaType: 'file', 
+                        fileName: file.name 
+                    });
+                };
+                reader.readAsDataURL(file);
+                filePicker.value = '';
+                return;
+            }
+
+            try {
+                uploadProgress.classList.remove('hidden');
+                uploadProgressBar.style.width = '0%';
+                uploadPercentText.textContent = '0%';
+
+                const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+                const fileRef = ref(storage, `uploads/${Date.now()}_${safeName}`);
+                const uploadTask = uploadBytesResumable(fileRef, file);
+
+                uploadTask.on('state_changed', 
+                    (snapshot) => {
+                        const progress = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+                        uploadProgressBar.style.width = progress + '%';
+                        uploadPercentText.textContent = progress + '%';
+                    }, 
+                    (error) => {
+                        uploadProgress.classList.add('hidden');
+                        alert("فشل الرفع السحابي.");
+                    }, 
+                    async () => {
+                        const downloadUrl = await getDownloadURL(uploadTask.snapshot.ref);
+                        uploadProgress.classList.add('hidden');
+                        uploadMessage({
+                            text: (file.type.startsWith('video/') ? '🎬 فيديو: ' : '📦 ملف: ') + file.name,
+                            mediaData: downloadUrl,
+                            mediaType: file.type.startsWith('video/') ? 'video' : 'cloud_file',
+                            fileName: file.name
+                        });
+                    }
+                );
+            } catch (err) {
+                uploadProgress.classList.add('hidden');
+                alert("حدث خطأ في عملية الرفع.");
+            }
+            filePicker.value = '';
+        });
+
+        // تسجيل الصوت
+        const recBar = document.getElementById('recording-active-bar');
+        const timerText = document.getElementById('rec-timer-text');
+
+        document.getElementById('btn-start-record').addEventListener('click', async () => {
+            initAudio();
+            if (!navigator.mediaDevices?.getUserMedia) { alert("المتصفح لا يدعم الميكروفون"); return; }
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorderInstance = new MediaRecorder(stream);
+                recordedChunks = [];
+                mediaRecorderInstance.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.push(e.data); };
+                mediaRecorderInstance.onstop = () => {
+                    stream.getTracks().forEach(t => t.stop());
+                    const blob = new Blob(recordedChunks, { type: 'audio/webm' });
+                    const reader = new FileReader();
+                    reader.onload = () => uploadMessage({ text: '🎤 صوت', mediaData: reader.result, mediaType: 'audio' });
+                    reader.readAsDataURL(blob);
+                };
+                mediaRecorderInstance.start();
+                recSeconds = 0;
+                recBar.classList.remove('hidden');
+                recInterval = setInterval(() => {
+                    recSeconds++;
+                    timerText.textContent = `${String(Math.floor(recSeconds/60)).padStart(2,'0')}:${String(recSeconds%60).padStart(2,'0')}`;
+                }, 1000);
+            } catch (err) { alert("يرجى إعطاء صلاحية الميكروفون"); }
+        });
+
+        document.getElementById('btn-finish-recording').addEventListener('click', () => {
+            if (mediaRecorderInstance && mediaRecorderInstance.state === 'recording') {
+                clearInterval(recInterval);
+                recBar.classList.add('hidden');
+                mediaRecorderInstance.stop();
+            }
+        });
+
+        document.getElementById('btn-cancel-recording').addEventListener('click', () => {
+            if (mediaRecorderInstance && mediaRecorderInstance.state === 'recording') {
+                clearInterval(recInterval);
+                recordedChunks = [];
+                recBar.classList.add('hidden');
+                mediaRecorderInstance.stop();
+            }
+        });
+
+        async function uploadMessage(payload) {
+            if (!currentUser || !currentChatId) return;
+            try {
+                await addDoc(collection(db, 'conversations', currentChatId, 'messages'), {
+                    ...payload,
+                    senderId: currentUser.uid,
+                    senderName: currentUser.name,
+                    reactions: {},
+                    createdAt: serverTimestamp()
+                });
+            } catch(e) {}
+        }
+
+        window.deleteMsg = async function(msgId) {
+            if (!confirm("هل أنت متأكد من حذف هذه الرسالة؟")) return;
+            try {
+                await deleteDoc(doc(db, 'conversations', currentChatId, 'messages', msgId));
+            } catch(err) {
+                alert("تعذر حذف الرسالة.");
+            }
+        };
+
+        // المزامنة
+        function syncData() {
+            onSnapshot(collection(db, 'chat_users'), (snapshot) => {
+                allUsers = [];
+                snapshot.forEach(d => {
+                    const u = d.data();
+                    if (u.uid !== currentUser.uid && u.email !== currentUser.email) {
+                        allUsers.push(u);
+                    }
+                });
+                renderSidebar();
+            });
+
+            onSnapshot(collection(db, 'chat_rooms'), async (snapshot) => {
+                if (snapshot.empty) {
+                    await setDoc(doc(db, 'chat_rooms', 'general'), {
+                        id: 'general',
+                        name: 'الدردشة العامة',
+                        desc: 'حوارات عامة مفتوحة للجميع',
+                        pin: null,
+                        isPrivate: false,
+                        creator: 'المنصة',
+                        createdAt: serverTimestamp()
+                    }).catch(() => {});
+                    return;
+                }
+                allRooms = [];
+                snapshot.forEach(d => allRooms.push(d.data()));
+                renderSidebar();
+            });
+
+            if (!currentChatId || currentChatId === 'general') {
+                openChat('general', 'الدردشة العامة', 'غرفة جماعية');
+            }
+        }
+
+        function renderSidebar() {
+            if (!currentUser) return;
+
+            if (activeTab === 'direct' || activeTab === 'archived') {
+                const filteredUsers = allUsers.filter(u => {
+                    const chatId = [currentUser.uid, u.uid].sort().join('___');
+                    const isArchived = archivedChats.includes(chatId);
+                    return activeTab === 'archived' ? isArchived : !isArchived;
+                });
+
+                if (filteredUsers.length === 0) {
+                    chatsListContainer.innerHTML = `<div class="p-6 text-center text-xs text-slate-400">${activeTab === 'archived' ? 'لا توجد محادثات مؤرشفة.' : 'لا يوجد مستخدمون آخرون مسجلون.'}</div>`;
+                    return;
+                }
+
+                chatsListContainer.innerHTML = filteredUsers.map(u => {
+                    const chatId = [currentUser.uid, u.uid].sort().join('___');
+                    const userName = u.name || u.email.split('@')[0];
+                    const isSelected = (currentChatId === chatId);
+                    const isBlocked = blockedUsers.includes(u.uid);
+
+                    return `
+                        <div class="user-chat-item p-3 hover:bg-slate-50 cursor-pointer flex items-center justify-between transition-colors ${isSelected ? 'bg-indigo-50 border-r-4 border-indigo-600' : ''}" 
+                             data-chat-id="${chatId}" 
+                             data-target-uid="${u.uid}"
+                             data-target-name="${userName}">
+                            <div class="flex items-center gap-2.5 pointer-events-none">
+                                <div class="w-9 h-9 rounded-full ${isBlocked ? 'bg-slate-400' : 'gradient-brand'} text-white flex items-center justify-center font-bold text-xs">${userName.charAt(0).toUpperCase()}</div>
+                                <div>
+                                    <h4 class="font-bold text-xs text-slate-800 flex items-center gap-1">
+                                        <span>${userName}</span>
+                                        ${isBlocked ? '<span class="text-[9px] bg-rose-100 text-rose-600 px-1 rounded font-normal">محظور</span>' : ''}
+                                    </h4>
+                                    <p class="text-[10px] text-slate-400">${activeTab === 'archived' ? 'محادثة مؤرشفة ومخفية' : 'محادثة ثنائية خاصة'}</p>
+                                </div>
+                            </div>
+                            <span class="text-xs text-slate-300 pointer-events-none">💬</span>
+                        </div>
+                    `;
+                }).join('');
+            } else if (activeTab === 'rooms') {
+                chatsListContainer.innerHTML = allRooms.map(r => {
+                    const isSelected = (currentChatId === r.id);
+                    return `
+                        <div class="room-chat-item p-3 hover:bg-slate-50 cursor-pointer flex items-center justify-between transition-colors ${isSelected ? 'bg-indigo-50 border-r-4 border-indigo-600' : ''}" 
+                             data-room-id="${r.id}">
+                            <div class="flex items-center gap-2.5 pointer-events-none">
+                                <div class="w-9 h-9 rounded-xl gradient-brand text-white flex items-center justify-center font-bold text-xs">
+                                    ${r.isPrivate ? '🔒' : '#'}
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-xs text-slate-800 flex items-center gap-1">
+                                        <span>${r.name}</span>
+                                        ${r.isPrivate ? '<span class="text-[10px] bg-amber-100 text-amber-700 px-1 rounded font-medium">خاصة</span>' : ''}
+                                    </h4>
+                                    <p class="text-[10px] text-slate-400">${r.desc || 'غرفة جماعية'}</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        chatsListContainer.addEventListener('click', (e) => {
+            const userItem = e.target.closest('.user-chat-item');
+            if (userItem) {
+                const targetChatId = userItem.getAttribute('data-chat-id');
+                const targetName = userItem.getAttribute('data-target-name');
+                const targetUid = userItem.getAttribute('data-target-uid');
+                currentTargetUserId = targetUid;
+                currentRoomData = null;
+                openChat(targetChatId, targetName, 'محادثة خاصة');
+                return;
+            }
+
+            const roomItem = e.target.closest('.room-chat-item');
+            if (roomItem) {
+                currentTargetUserId = null;
+                const roomId = roomItem.getAttribute('data-room-id');
+                const room = allRooms.find(x => x.id === roomId);
+                if (!room) return;
+
+                currentRoomData = room;
+
+                if (room.isPrivate) {
+                    pendingProtectedRoom = room;
+                    document.getElementById('pin-prompt-title').textContent = room.name;
+                    document.getElementById('input-verify-pin').value = '';
+                    modalPin.classList.remove('hidden');
+                    document.getElementById('input-verify-pin').focus();
+                } else {
+                    openChat(room.id, room.name, 'غرفة جماعية');
+                }
+            }
+        });
+
+        function sanitizeHTML(str) {
+            const temp = document.createElement('div');
+            temp.textContent = str;
+            return temp.innerHTML;
+        }
+
+        // رسم الرسائل
+        function renderMessages(docs) {
+            container.innerHTML = '';
+
+            docs.forEach(docSnap => {
+                const msg = docSnap.data();
+                const docId = docSnap.id;
+
+                if (blockedUsers.includes(msg.senderId)) {
+                    return;
+                }
+
+                const isMe = currentUser && msg.senderId === currentUser.uid;
+                const isBot = msg.senderId === "ai_agent_bot" || msg.isBot;
+                let mediaHtml = '';
+                
+                if (msg.mediaType === 'image') {
+                    mediaHtml = `<img src="${msg.mediaData}" onclick="window.viewImage('${msg.mediaData}')" class="rounded-xl max-h-48 mb-1 cursor-pointer">`;
+                } else if (msg.mediaType === 'video') {
+                    mediaHtml = `<video controls src="${msg.mediaData}" class="rounded-xl max-h-56 w-full mb-1"></video>`;
+                } else if (msg.mediaType === 'audio') {
+                    mediaHtml = `<audio controls src="${msg.mediaData}" class="h-8 max-w-[220px] mb-1"></audio>`;
+                } else if (msg.mediaType === 'file') {
+                    mediaHtml = `<a href="${msg.mediaData}" download="${msg.fileName}" class="underline block mb-1 text-xs font-bold">📄 ${sanitizeHTML(msg.fileName)} (تحميل فوري)</a>`;
+                } else if (msg.mediaType === 'cloud_file') {
+                    mediaHtml = `<a href="${msg.mediaData}" target="_blank" download="${msg.fileName}" class="underline block mb-1 text-xs font-bold text-amber-200">📦 تحميل من السحابة: ${sanitizeHTML(msg.fileName)}</a>`;
+                }
+
+                if (msg.isTyping) {
+                    container.insertAdjacentHTML('beforeend', `
+                        <div class="flex justify-end">
+                            <div class="msg-bubble-bot px-3.5 py-2 max-w-[85%] text-xs shadow-sm flex items-center gap-1.5">
+                                <span class="font-bold text-[11px]">المساعد يكتب الآن...</span>
+                            </div>
+                        </div>
+                    `);
+                    return;
+                }
+
+                let bubbleClass = isMe ? 'msg-bubble-me' : (isBot ? 'msg-bubble-bot' : 'msg-bubble-other');
+                let senderLabel = isBot ? '🤖 المساعد الذكي' : sanitizeHTML(msg.senderName || 'الطرف الآخر');
+                let senderColor = isBot ? 'text-emerald-700' : 'text-indigo-600';
+
+                const div = document.createElement('div');
+                div.textContent = msg.text || '';
+                let renderedText = `<p class="whitespace-pre-wrap leading-relaxed">${div.innerHTML}</p>`;
+
+                let reactionsHtml = '';
+                if (msg.reactions && Object.keys(msg.reactions).length > 0) {
+                    const counts = {};
+                    Object.values(msg.reactions).forEach(r => counts[r] = (counts[r] || 0) + 1);
+                    reactionsHtml = `
+                        <div class="flex flex-wrap gap-1 mt-1.5 pt-1 border-t border-black/5">
+                            ${Object.entries(counts).map(([emoji, count]) => `
+                                <span class="inline-flex items-center gap-1 text-[11px] bg-white/70 px-1.5 py-0.5 rounded-full shadow-sm text-slate-800 font-bold">
+                                    <span>${emoji}</span>${count > 1 ? `<span class="text-[9px] text-slate-500">${count}</span>` : ''}
+                                </span>
+                            `).join('')}
+                        </div>
+                    `;
+                }
+
+                container.insertAdjacentHTML('beforeend', `
+                    <div class="flex ${isMe ? 'justify-start' : 'justify-end'} group relative">
+                        <div class="${bubbleClass} px-3.5 py-2 max-w-[85%] text-xs relative">
+                            <div class="flex items-center justify-between gap-3 mb-1">
+                                ${!isMe ? `<span class="font-bold ${senderColor} text-[10px]">${senderLabel}</span>` : '<span></span>'}
+                                
+                                <button onclick="window.openReactionsMenu(event, '${docId}')" class="text-[11px] opacity-40 hover:opacity-100 transition-opacity" title="تفاعل">
+                                    ✨
+                                </button>
+                            </div>
+                            
+                            <div id="reaction-popup-${docId}" class="reaction-popup hidden absolute -top-8 ${isMe ? 'right-0' : 'left-0'} z-30 bg-white border border-slate-200 rounded-full shadow-lg px-2 py-1 flex gap-1.5 text-sm select-none">
+                                <span class="cursor-pointer hover:scale-125 transition-transform" onclick="window.addReaction('${docId}', '👍')">👍</span>
+                                <span class="cursor-pointer hover:scale-125 transition-transform" onclick="window.addReaction('${docId}', '❤️')">❤️</span>
+                                <span class="cursor-pointer hover:scale-125 transition-transform" onclick="window.addReaction('${docId}', '😂')">😂</span>
+                                <span class="cursor-pointer hover:scale-125 transition-transform" onclick="window.addReaction('${docId}', '😮')">😮</span>
+                                <span class="cursor-pointer hover:scale-125 transition-transform" onclick="window.addReaction('${docId}', '😢')">😢</span>
+                                <span class="cursor-pointer hover:scale-125 transition-transform" onclick="window.addReaction('${docId}', '🔥')">🔥</span>
+                            </div>
+
+                            ${mediaHtml}
+                            <div class="text-xs">${renderedText}</div>
+                            ${reactionsHtml}
+
+                            ${isMe ? `
+                                <div class="text-left mt-1">
+                                    <button onclick="window.deleteMsg('${docId}')" class="text-[9px] text-white/60 hover:text-rose-200 underline">حذف الرسالة</button>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `);
+            });
+
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // فتح المحادثة
+        function openChat(chatId, title, desc) {
+            currentChatId = chatId;
+            isInitialLoad = true;
+            document.getElementById('room-active-title').textContent = title;
+            document.getElementById('room-active-desc').textContent = desc;
+
+            if (window.innerWidth < 768) {
+                sidebarEl.style.display = 'none';
+                chatEl.style.display = 'flex';
+            } else {
+                sidebarEl.style.display = 'flex';
+                chatEl.style.display = 'flex';
+            }
+
+            updateChatControls();
+
+            document.querySelectorAll('.user-chat-item, .room-chat-item').forEach(el => {
+                const targetId = el.getAttribute('data-chat-id') || el.getAttribute('data-room-id');
+                if (targetId === currentChatId) {
+                    el.classList.add('bg-indigo-50', 'border-r-4', 'border-indigo-600');
+                } else {
+                    el.classList.remove('bg-indigo-50', 'border-r-4', 'border-indigo-600');
+                }
+            });
+
+            if (unsubscribeMessages) unsubscribeMessages();
+            const q = query(collection(db, 'conversations', currentChatId, 'messages'), orderBy('createdAt', 'asc'));
+            
+            unsubscribeMessages = onSnapshot(q, (snapshot) => {
+                snapshot.docChanges().forEach(change => {
+                    if (change.type === "added" && !isInitialLoad) {
+                        const newMsg = change.doc.data();
+                        if (currentUser && newMsg.senderId !== currentUser.uid && !newMsg.isTyping && !blockedUsers.includes(newMsg.senderId)) {
+                            notifyMessage(newMsg.senderName || "رسالة جديدة", newMsg.text || "مرفق جديد");
+                        }
+                    }
+                });
+
+                renderMessages(snapshot.docs);
+                isInitialLoad = false;
+            });
+        }
+
+        window.viewImage = (src) => {
+            document.getElementById('lightbox-img').src = src;
+            document.getElementById('lightbox-modal').classList.remove('hidden');
+        };
+        document.getElementById('btn-close-lightbox').addEventListener('click', () => document.getElementById('lightbox-modal').classList.add('hidden'));
+
+        // أزرار الجوال
+        document.getElementById('btn-toggle-sidebar').addEventListener('click', () => {
+            if (window.innerWidth < 768) {
+                if (sidebarEl.style.display === 'none') {
+                    sidebarEl.style.display = 'flex';
+                    chatEl.style.display = 'none';
+                } else {
+                    sidebarEl.style.display = 'none';
+                    chatEl.style.display = 'flex';
+                }
+            }
+        });
+
+        document.getElementById('btn-back-to-rooms').addEventListener('click', () => {
+            sidebarEl.style.display = 'flex';
+            chatEl.style.display = 'none';
+        });
+
+        window.addEventListener('resize', () => {
+            if (window.innerWidth >= 768) {
+                sidebarEl.style.display = 'flex';
+                chatEl.style.display = 'flex';
+            } else {
+                sidebarEl.style.display = 'none';
+                chatEl.style.display = 'flex';
+            }
+        });
+    </script>
+</body>
+</html>
