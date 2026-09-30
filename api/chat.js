@@ -7,6 +7,16 @@ export default async function handler(req, res) {
   const userText = (prompt && prompt.trim()) ? prompt.trim() : "مرحباً";
   const apiKey = "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";
 
+  // تعريف الهوية والتعليمات المباشرة للمساعد
+  const systemPrompt = `
+أنت المساعد الذكي الرسمي والمسؤول عن الدعم الفني في منصة "هاي محمود".
+تم تطويرك وتخصيصك بواسطة المهندس "محمود قصير".
+مهمتك:
+1. الترحيب بالمستخدمين بلباقة وتقديم المساعدة التقنية والدعم الفني للمنصة.
+2. إذا سألك أحد عن هويتك أو من طورك، أخبره بكل فخر واعتزاز أنك المساعد التابع للمهندس محمود قصير ومنصة "هاي محمود".
+3. أجب دائماً باللغة العربية بأسلوب راقٍ، مهني، وموجز وواضح.
+`.trim();
+
   try {
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
@@ -17,11 +27,11 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         model: "allam-2-7b",
         messages: [
-          { role: "system", content: "أنت المساعد الذكي في منصة هاي محمود. أجب باللغة العربية باختصار وسرعة." },
+          { role: "system", content: systemPrompt },
           { role: "user", content: userText }
         ],
-        temperature: 0.5,
-        max_tokens: 500
+        temperature: 0.6,
+        max_tokens: 600
       })
     });
 
