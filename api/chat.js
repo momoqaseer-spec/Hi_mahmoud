@@ -5,7 +5,7 @@ export default async function handler(req, res) {
 
   const { prompt } = req.body;
   const userText = (prompt && prompt.trim()) ? prompt.trim() : "مرحباً";
-  const apiKey = "Gsk_WXOgdOeCXWjRpJGmqffdWGdyb3FYYMat3BSgAmlGH4QdkNXvUWVS";
+  const apiKey = "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";
 
   // تعريف هوية المساعد ومعلومات المهندس محمود قصير
   const systemPrompt = `
